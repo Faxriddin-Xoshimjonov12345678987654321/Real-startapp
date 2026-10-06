@@ -84,3 +84,25 @@ class SignUpSerializer(serializers.ModelSerializer):
             raise ValidationError('Siz xato email yoki telefon raqam kiridingiz')
 
         return data
+
+
+class VerifySerializer(serializers.Serializer):
+    code = serializers.CharField(max_length=4, required=True)
+
+
+class LoginSerializer(serializers.Serializer):
+    email_or_phone_number = serializers.CharField(requeired=True)
+
+    def validate(self, attrs):
+        user_input = attrs.get('email_or_phone_number')
+
+        user = CustomUser.objects.filter(Q(phone_number=user_input) | Q(email=user_input)).first()
+
+
+        if not user:
+            raise ValidationError({
+                "error": "Bunday foydalanuvchi topilmadi!"
+            })
+
+        attrs['user'] = user
+        return attrs
