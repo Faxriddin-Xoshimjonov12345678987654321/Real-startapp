@@ -7,6 +7,7 @@ import re
 
 email_regex = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
 phone_regex = re.compile(r'\+998(90|91|93|94|95|98|99|33|97|71)\d{7}$')
+username_regex = re.compile(r'^[a-zA-Z0-9_]{3,20}$')
 
 
 def email_phone_regex(user_input):
@@ -18,6 +19,12 @@ def email_phone_regex(user_input):
 
     else:
         raise ValidationError('Siz xato email yoki telefon raqam kiritdingiz')
+
+
+def validate_username(username):
+    if not re.fullmatch(username_regex, username):
+        raise ValidationError({"username": "Username faqat harflar, raqamlar va '_' dan iborat bo'lishi kerak (3-20 ta belgi)"})
+    return 'username'
 
 
 def send_email_code(email, code):

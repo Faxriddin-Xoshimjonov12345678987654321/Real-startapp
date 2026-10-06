@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
 from django.db.models import Q
-from base.utils import send_email_code
+from base.utils import send_email_code, email_phone_regex, validate_username
 
 from .models import CustomUser, VIA_EMAIL, VIA_PHONE, DONE, CODE_VERIFY, NEW, PHOTO_DONE
 
@@ -10,11 +10,15 @@ from base.utils import email_phone_regex
 
 class SignUpSerializer(serializers.ModelSerializer):
     email_or_phone_number = serializers.CharField(write_only=True)
+    username = serializers.CharField(required=True)
 
     class Meta:
         model = CustomUser
-        fields = ['id', 'auth_type', 'auth_status', 'email_or_phone_number']
+        fields = ['id', 'username', 'auth_type', 'auth_status', 'email_or_phone_number']
         read_only_fields = ['id', 'auth_type', 'auth_status']
+
+    def validate_username(self, value):
+        return validate_username(value)
 
 
     def create(self, validated_data):
