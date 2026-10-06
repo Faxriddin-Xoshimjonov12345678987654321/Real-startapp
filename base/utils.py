@@ -26,4 +26,19 @@ def send_email_code(email, code):
   email_from = settings.EMAIL_HOST_USER
   recipient_list = [email]
 
-  send_mail(subject, message, email_from, recipient_list)
+
+  try:
+     send_mail(
+            subject=subject, 
+            message=message, 
+            from_email=email_from, 
+            recipient_list=recipient_list,
+            fail_silently=False,
+            )
+     return True
+  except Exception as error:
+      print(f"Email yuborishda xatolik: {error}")
+
+      return False
+      
+

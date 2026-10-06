@@ -26,7 +26,9 @@ class SignUpSerializer(serializers.ModelSerializer):
             print(f"EMAIL CODE: {code}")
             #send_mail(user.email, code)
 
-            send_email_code(user.email, code)
+            is_sent = send_email_code(user.email, code)
+            if not is_sent:
+                raise ValidationError("Tasdiqlash kodini yuborishda xatolik yuz berdi Emailni tekshiring")
 
         elif user.auth_type == VIA_PHONE:
             code = user.generate_code(user.auth_type)
