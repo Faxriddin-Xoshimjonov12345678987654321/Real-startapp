@@ -36,7 +36,7 @@ class CustomUser(AbstractUser, BaseModel):
     )
 
     phone_number = models.CharField(max_length=13, unique=True, blank=True, null=True)
-    email = models.EmailField(max_length=13, unique=True, blank=True, null=True)
+    email = models.EmailField(max_length=99, unique=True, blank=True, null=True)
     auth_status = models.CharField(max_length=20, choices=AUTH_STATUS, default=NEW)
     auth_type = models.CharField(max_length=120, choices=AUTH_TYPE)
     auth_role = models.CharField(max_length=20, choices=AUTH_ROLE)
@@ -77,7 +77,7 @@ class CustomUser(AbstractUser, BaseModel):
             'refresh': str(refresh),
             'access': str(refresh.access_token)
         }
-
+        
     def generate_code(self, verify_type):
         code = random.randint(1000, 9999)
         
@@ -117,7 +117,7 @@ class Verify(BaseModel):
     def save(self, *args, **kwargs):
         if self.verify_type == VIA_EMAIL:
             self.expire_time = datetime.now() + timedelta(minutes=EMAIL_EXPIRE_TIME) # timedelte bo'lgani uchun -> 12:30 -> 12:33
-        else:
+        else:   
             self.expire_time = datetime.now() + timedelta(minutes=PHONE_EXPIRE_TIME)
         super().save(*args, **kwargs)
 

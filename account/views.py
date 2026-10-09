@@ -1,13 +1,15 @@
 from django.shortcuts import render
-from rest_framework.generics import CreateAPIView, GenericAPIView
+from rest_framework.generics import CreateAPIView, GenericAPIView, UpdateAPIView
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-
-from .models import NEW, CODE_VERIFY, DONE, CustomUser
-from .serializers import SignUpSerializer, VerifySerializer, LoginSerializer
+from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
+from base.utils import send_email_code
+from .models import NEW, CODE_VERIFY, DONE, CustomUser, VIA_EMAIL, VIA_PHONE
+from .serializers import SignUpSerializer, VerifySerializer, LoginSerializer, ChangeInfoSerializer, AddPhotoSerializer
 
 from datetime import datetime
 # Create your views here.
@@ -33,7 +35,22 @@ class VerifyView(GenericAPIView):
         code = request.data.get('code')
         user = request.user
 
-        codes = user.codes.all().filter(code=code, used=False, expiration_time__gte = datetime.now()).first()
+        codes = user.codes.all().filter(code=code, used=False, expire_time__gte = datetime.now()).first()
+        print(codes, '---------------------------------------')
+        if codes is None:
+            raise ValidationError('Kod eskirgan yoki yaroqsiz')
+
+        if user.auth_status == NEW:
+            user.auth_status = CODE_VERIFY
+            codes.used = True
+
+            user.save()
+            codes.save()
+
+        return Response({
+            'message': 'kod tasdiqlandi',
+            'auth_status': user.auth_status
+        })
 
 
         if not codes:
@@ -53,6 +70,44 @@ class VerifyView(GenericAPIView):
             "message": "Hisobingiz muffaqiyatli tasdiqlandi!",
             "token": user.token()
         }, status=status.HTTP_200_OK)
+
+
+class GetNewCodeView(GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request):
+        user = request.user
+        if user.auth_status != NEW:
+            raise ValidationError('Sizda bu xolat taqiqlangan')
+
+        codes = user.codes.all().filter(used=False, expire_time__gte = datetime.now()).first()
+        if codes:
+            raise ValidationError('Sizda hali aktiv kod bor. Keyinroq urinib koring')
+
+
+        # if 
+
+
+        if user.auth_type == VIA_EMAIL:
+            code = user.generate_code(user.auth_type)
+            print(f"EMAIL CODE: {code}")
+            #send_mail(user.email, code)
+
+            is_sent = send_email_code(user.email, code)
+            if not is_sent:
+                raise ValidationError("Tasdiqlash kodini yuborishda xatolik yuz berdi Emailni tekshiring")
+
+        elif user.auth_type == VIA_PHONE:
+            code = user.generate_code(user.auth_type)
+            print(f"PHONE NUMBER CODE: {code}")
+            #send_SMS(user.phone_number, code)
+
+        else:
+            raise ValidationError('Email yoki telefon raqam xato kiritilgan')
+
+        return Response({
+            'message': 'Kod yuborildi'
+        })
+        
 
 
 class LoginView(GenericAPIView):
@@ -94,4 +149,22 @@ class LogoutView(APIView):
             return Response({
                 "error": "Xatolik yuz berdi yoki token yaroqsiz"
             }, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ChangeInfoView(UpdateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ChangeInfoSerializer
+    queryset = CustomUser.objects.all()
+
+    def get_object(self):
+        return self.request.user
+
+
+class AddPhotoView(UpdateAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = AddPhotoSerializer
+    queryset = CustomUser.objects.all()
+
+    def get_object(self):
+        return self.request.user
 
